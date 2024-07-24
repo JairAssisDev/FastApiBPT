@@ -1,0 +1,24 @@
+version: '3.7'
+
+services:
+  web:
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      
+  db:
+    image: mysql:8.4.0-oraclelinux9
+    volumes:
+      - ./init_db_paciente.sql:/docker-entrypoint-initdb.d/init_db_paciente.sql
+      - ./init_db_users.sql:/docker-entrypoint-initdb.d/init_db_users.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: IFPEBPT
+      MYSQL_USER: IFPEBPT
+      MYSQL_PASSWORD: IFPEBPT      
+    ports:
+      - "3306:3306"
