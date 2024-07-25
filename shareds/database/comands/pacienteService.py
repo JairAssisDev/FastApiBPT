@@ -72,7 +72,7 @@ def paciente_prob_get_all():
             conn.close()
 
 
-def get_by_name_cpf( cpf):
+def get_by_name_cpf(cpf:str):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -94,7 +94,7 @@ def get_by_name_cpf( cpf):
             conn.close()
 
 
-def verificar_paciente(cpf):
+def verificar_paciente(cpf:str):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -112,7 +112,7 @@ def verificar_paciente(cpf):
         if 'conexao' in locals():
             conn.close()
 
-def delete_paciente_by_name_and_cpf(cpf):
+def delete_paciente_by_name_and_cpf(cpf:str):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
