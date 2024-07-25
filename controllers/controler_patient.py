@@ -1,10 +1,12 @@
 from entities.paciente import Paciente
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile, HTTPException
 from predictions.predict import *
 from pydantic import ValidationError
 from fastapi.responses import JSONResponse
 from shareds.database.comands.pacienteService import *
-
+from io import BytesIO
+import pandas as pd
+from io import StringIO
 
 router = APIRouter(prefix="/paciente")
 
@@ -88,3 +90,88 @@ def use_update_paciente(cpf:str,newpacinete: Paciente):
 
     except Exception as e:
         return JSONResponse(status_code=400,content={'error': "Erro ao atualizar paciente:"+str(e)})
+    
+
+from fastapi import Depends, File, UploadFile, HTTPException, status
+from fastapi.responses import JSONResponse, FileResponse
+from io import BytesIO
+import pandas as pd
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_pacientes(file: UploadFile = File(...)):
+    """
+    Uploads a CSV or XLS(X) file containing patient data and processes it.
+
+    Raises:
+        HTTPException: 400 for bad request errors (e.g., invalid file format)
+    """
+
+    try:
+        if file.filename == "":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No selected file")
+
+        file_content = await file.read()
+        file_extension = file.content_type.lower().split("/")[-1]
+
+        if file_extension in ("csv",):
+            data = pd.read_csv(BytesIO(file_content))
+        elif file_extension in ("xlsx", "xls"):
+            data = pd.read_excel(BytesIO(file_content))
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+
+        filtered_data = data[data["nome"].str.lower() != "nome"] 
+        lista_de_pacientes_n_salvos = []
+
+        for index, row in filtered_data.iterrows():
+            try:
+                data_dict = {
+                    "nome": str(row["nome"]).lower(),
+                    "cpf": str(row["cpf"]),
+                    "sex": int(row["sex"]),
+                    "redo": int(row["redo"]),
+                    "cpb": int(row["cpb"]),
+                    "age": int(row["age"]),
+                    "bsa": float(row["bsa"]),
+                    "hb": float(row["hb"]),
+                }
+
+                paciente = verificar_paciente(data_dict["cpf"])
+                if not paciente:
+                    dados = predict_and_explain(
+                        data_dict["sex"],
+                        data_dict["redo"],
+                        data_dict["cpb"],
+                        data_dict["age"],
+                        data_dict["bsa"],
+                        data_dict["hb"],
+                    )
+                    data_dict["probability"] = dados["true_probability"]
+                    data_dict["prediction"] = dados["prediction"]
+                    insert_paciente(Paciente(**data_dict))
+                else:
+                    lista_de_pacientes_n_salvos.append(data_dict)
+            except Exception as e:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        if lista_de_pacientes_n_salvos:
+            output = BytesIO()
+            df = pd.DataFrame(lista_de_pacientes_n_salvos)
+            df.to_excel(output, index=False, engine="openpyxl")
+            output.seek(0)
+
+            return FileResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename="pacientes_nao_salvos.xlsx",
+            )
+
+        return JSONResponse(
+            status_code=status.HTTP_207_MULTI_STATUS,
+            content={"message": "Parte dos pacientes foram salvos com sucesso."},
+        )
+
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": str(e.detail)})
+    except Exception as e:
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": str(e)})

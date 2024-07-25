@@ -2013,4 +2013,4 @@ test = ["pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e904301d84d9ed8e0822a2f25ea5b5c76ba51e79995074e73e480f869690da44"
+content-hash = "e0ced477cb039f6ab98a7891d2905dc848b2e40b8aace35a41c58859f530804c"

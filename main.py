@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from controllers.controller_user import router as routes_user
+from controllers.controler_patient import router as routes_patient
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(routes_user)
+app.include_router(routes_patient)
 
 if __name__ == "__main__":
     

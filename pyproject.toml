@@ -23,6 +23,7 @@ python-dotenv = "^1.0.1"
 mysql-connector-python = "^9.0.0"
 matplotlib = "^3.9.1"
 mysqlclient = "^2.2.4"
+numpy = "^2.0.1"
 
 
 [build-system]
